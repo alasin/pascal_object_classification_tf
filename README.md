@@ -11,6 +11,7 @@ In this assignment, we will learn to train multi-label image classification mode
 In all the following tasks, coding and analysis, please write a short summary of what you tried, what worked (or didn't), and what you learned, in the report. Write the code in the files as specified. 
 
 **Submission Requirements**:
+
 * Please submit your report as well as your code.
 * Please submit a zip file (less than 10 MB) that contains one folder named `code` which contains all your code files and one `report` in pdf format. You should name your report as `<AndrewID>.pdf`. And please zip all your files into a single file named `<AndrewID>.zip`. 
 * In the begining of the report, please include a section which lists all the commands for TAs to run your code.
@@ -54,13 +55,13 @@ We start by modifying the code to read images from the [PASCAL 2007 dataset](htt
 We first need to download the image dataset and annotations. Use the following commands to setup the data, and lets say it is stored at location `$DATA_DIR`.
 
 ```bash
-$ # First, cd to a location where you want to store ~0.5GB of data.
-$ wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
-$ tar -xf VOCtrainval_06-Nov-2007.tar
-$ # Also download the test data
-$ wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar && tar -xf VOCtest_06-Nov-2007.tar
-$ cd VOCdevkit/VOC2007/
-$ export DATA_DIR=$(pwd)
+# First, cd to a location where you want to store ~0.5GB of data.
+wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtrainval_06-Nov-2007.tar
+tar -xf VOCtrainval_06-Nov-2007.tar
+# Also download the test data
+wget http://host.robots.ox.ac.uk/pascal/VOC/voc2007/VOCtest_06-Nov-2007.tar && tar -xf VOCtest_06-Nov-2007.tar
+cd VOCdevkit/VOC2007/
+export DATA_DIR=$(pwd)
 ```
 
 
