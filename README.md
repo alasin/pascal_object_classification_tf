@@ -97,7 +97,7 @@ TensorFlow ships with an awesome visualization tool called [TensorBoard](https:/
 
 Now that you have implemented all the parts above, we can start training the model with PASCAL 2007 dataset.
 
-#### Q 1.1 Show clear screenshots of the learning curves of testing MAP and training loss for 10 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 50 iterations. 
+#### Q 1.1 Show clear screenshots of the learning curves of testing MAP and training loss for 5 epochs (batch size=20, learning rate=0.001). Please evaluate your model to calculate the MAP on the testing dataset every 50 iterations. 
 
 
 
@@ -147,7 +147,7 @@ ARCHITECTURE:
 Please modify your code to use the following hyperparameter settings.
 
 1. Change the optimizer to SGD + Momentum, with momentum of 0.9.
-1. Use an exponentially decaying learning rate schedule, that starts at 0.001, and decays by 0.5 every 10K iterations.
+1. Use an exponentially decaying learning rate schedule, that starts at 0.001, and decays by 0.5 every 5K iterations.
 1. Use batch size 20.
 
 ### 2.3 Save the model
@@ -187,7 +187,7 @@ Copy over your code from `02_pascal.py` to `05_pascal_vgg_finetune.py` and modif
 Load the pre-trained weights upto fc7 layer, and initialize fc8 weights and biases from scratch. Then train the network as before. You may use funtions such as `tf.keras.utils.get_file`, `
 tf.keras.models.load_weights`. Since the pretrained model might use different names for the weights, you need to figure out how to load the weights correctly.
 
-#### Q4.1: Use similar hyperparameter setup as in the scratch case, however, let the learning rate start from 0.0001, and decay by 0.5 every 2K iterations. Show the learning curves (training and testing loss, testing MAP) for 10 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 60 iterations. 
+#### Q4.1: Use similar hyperparameter setup as in the scratch case, however, let the learning rate start from 0.0001, and decay by 0.5 every 1K iterations. Show the learning curves (training and testing loss, testing MAP) for 10 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 60 iterations. 
 
 ## Task 5: Analysis (20 points)
 

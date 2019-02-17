@@ -57,11 +57,11 @@ class SimpleCNN(keras.Model):
 
 def main():
     parser = argparse.ArgumentParser(description='TensorFlow Pascal Example')
-    parser.add_argument('--batch-size', type=int, default=50,
+    parser.add_argument('--batch-size', type=int, default=10,
                         help='input batch size for training')
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=5,
                         help='number of epochs to train')
-    parser.add_argument('--lr', type=float, default=0.0005,
+    parser.add_argument('--lr', type=float, default=0.001,
                         help='learning rate')
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed')
@@ -90,7 +90,7 @@ def main():
     train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels, train_weights))
     train_dataset = train_dataset.shuffle(10000).batch(args.batch_size)
     test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels, test_weights))
-    test_dataset = test_dataset.shuffle(10000).batch(args.batch_size)
+    test_dataset = test_dataset.batch(args.batch_size)
 
     model = SimpleCNN(num_classes=len(CLASS_NAMES))
 
