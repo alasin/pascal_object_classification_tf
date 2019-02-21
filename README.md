@@ -131,6 +131,7 @@ ARCHITECTURE:
 	-> conv(3, 1, 384, 'SAME')
 	-> relu()
 	-> conv(3, 1, 256, 'SAME')
+	-> relu()
 	-> max_pool(3, 2)
 	-> flatten()
 	-> fully_connected(4096)
