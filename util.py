@@ -2,7 +2,10 @@ import numpy as np
 import sklearn.metrics
 import tensorflow as tf
 from tensorflow import keras
-
+import os
+import skimage.io as sio
+from skimage.transform import resize
+import sys
 
 def set_session():
     config = tf.ConfigProto()
@@ -17,7 +20,7 @@ def set_random_seed(seed):
     tf.set_random_seed(seed)
 
 
-def load_pascal(data_dir, class_names, split='train'):
+def load_pascal(data_dir, class_names, split='trainval'):
     """
     Function to read images from PASCAL data folder.
     Args:
@@ -37,7 +40,54 @@ def load_pascal(data_dir, class_names, split='train'):
             are ambiguous.
     """
     ## TODO Implement this function
-    return images, labels, weights
+    num_classes = len(class_names)
+    # class_dict = {}
+    # for i, class_name in enumerate(class_names):
+    #     class_dict[class_name] = i
+    
+    labels = {}
+    weights = {}
+    for i, class_name in enumerate(class_names):
+        file_name = data_dir + '/' + 'ImageSets/Main/' + class_name + '_' + split + '.txt'
+        f = open(file_name, 'r')
+        for line in f:
+            line = line[:-1]
+            tokens = line.split(' ')
+            idx = tokens[0]
+            presence = tokens[-1]
+            if idx not in labels:
+                labels[idx] = np.zeros(num_classes, dtype=np.int32)
+                weights[idx] = np.ones(num_classes, dtype=np.int32)
+            
+            if presence == '0' or presence == '1':
+                labels[idx][i] = 1
+
+            if presence == '0':
+                weights[idx][i] = 1
+
+        f.close()
+
+
+    images_arr = []
+    labels_arr = []
+    weights_arr = []
+    mean_rgb = np.array([123.68, 116.78, 103.94])
+    for key, val in labels.items():
+        im_name = data_dir + '/JPEGImages/' + key + '.jpg'
+        im = sio.imread(im_name)
+        im = resize(im, (256, 256, 3), preserve_range=True)
+        im = np.subtract(im, mean_rgb)
+
+        images_arr.append(im)
+        labels_arr.append(val)
+        weights_arr.append(weights[key])
+
+    images_arr = np.array(images_arr, dtype=np.float32)
+    labels_arr = np.array(labels_arr)
+    weights_arr = np.array(weights_arr)
+
+    
+    return images_arr, labels_arr, weights_arr
 
 
 def cal_grad(model, loss_func, inputs, targets, weights=1.0):
@@ -97,6 +147,23 @@ def eval_dataset_map(model, dataset):
          MAP (float): mean average precision
     """
     ## TODO implement the code here
+    gt = []
+    preds = []
+    valid = []
+    for batch, (images, labels, weights) in enumerate(dataset):
+        x = model(images, training=False)
+        x = tf.nn.sigmoid(x)
+        # x = tf.round(x)
+        gt.append(labels.numpy())
+        valid.append(weights.numpy())
+        preds.append(x.numpy())
+        # print(x[0], labels[0], weights[0])
+
+    gt = np.concatenate(gt, axis=0)
+    preds = np.concatenate(preds, axis=0)
+    valid = np.concatenate(valid, axis=0)
+    AP = compute_ap(gt, preds, valid)
+    mAP = np.mean(AP)
     return AP, mAP
 
 
@@ -105,3 +172,9 @@ def get_el(arr, i):
         return arr[i]
     except IndexError:
         return arr
+
+if __name__ == "__main__":
+    CLASS_NAMES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus', 'car',
+               'cat', 'chair', 'cow', 'diningtable', 'dog', 'horse', 'motorbike',
+               'person', 'pottedplant', 'sheep', 'sofa', 'train', 'tvmonitor']
+    a, b, c = load_pascal('data/VOCdevkit/VOC2007', CLASS_NAMES, split='test')
