@@ -57,12 +57,12 @@ class SimpleCNN(keras.Model):
         return tf.TensorShape(shape)
 
 def augment_train_data(x, y, z):
-    tf.image.random_crop(x, size=(-1, 224, 224, 3))
-    tf.image.random_flip_left_right(x)
+    x = tf.image.random_crop(x, size=(224, 224, 3))
+    x = tf.image.random_flip_left_right(x)
     return x, y, z
 
 def center_crop_test_data(x, y, z):
-    tf.image.central_crop(x, central_fraction=0.875)
+    x = tf.image.central_crop(x, central_fraction=0.875)
     return x, y, z
 
 def test(model, dataset):
@@ -73,7 +73,6 @@ def test(model, dataset):
         loss_value = tf.losses.sigmoid_cross_entropy(labels, logits, weights)
         prediction = tf.round(tf.nn.sigmoid(logits))
         prediction = tf.cast(prediction, tf.int32)
-        # prediction = tf.argmax(logits, axis=1, output_type=tf.int32)
         test_accuracy(prediction, labels)
         test_loss(loss_value)
     
@@ -122,12 +121,12 @@ def main():
 
 
     train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels, train_weights))
+    train_dataset = train_dataset.map(augment_train_data)
     train_dataset = train_dataset.shuffle(10000).batch(args.batch_size)
-    train_dataset.map(augment_train_data)
 
     test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels, test_weights))
+    test_dataset = test_dataset.map(center_crop_test_data)
     test_dataset = test_dataset.batch(args.batch_size)
-    test_dataset.map(center_crop_test_data)
 
     model = SimpleCNN(num_classes=len(CLASS_NAMES))
 
@@ -147,7 +146,6 @@ def main():
     test_log = {'iter': [], 'loss': [], 'accuracy': []}
     for ep in range(args.epochs):
         epoch_loss_avg = tfe.metrics.Mean()
-        # epoch_accuracy = tfe.metrics.Accuracy()
         for batch, (images, labels, weights) in enumerate(train_dataset):
             loss_value, grads = util.cal_grad(model,
                                               loss_func=tf.losses.sigmoid_cross_entropy,
@@ -158,30 +156,19 @@ def main():
                                           model.trainable_variables),
                                       global_step)
             epoch_loss_avg(loss_value)
-            # predictions = tf.cast(tf.round(model(images)), tf.int32)
-            # epoch_accuracy(predictions, labels)
             
             with tf.contrib.summary.always_record_summaries():
                 tf.contrib.summary.scalar('Training Loss', loss_value)
             if global_step.numpy() % args.log_interval == 0:
-                # print('Epoch: {0:d}/{1:d} Iteration:{2:d}  Training Loss:{3:.4f}  '
-                #       'Training Accuracy:{4:.4f}'.format(ep,
-                #                                          args.epochs,
-                #                                          global_step.numpy(),
-                #                                          epoch_loss_avg.result(),
-                #                                          epoch_accuracy.result()))
                 print('Epoch: {0:d}/{1:d} Iteration:{2:d}  Training Loss:{3:.4f}'.format(ep,
                                                                 args.epochs,
                                                                 global_step.numpy(),
                                                                 epoch_loss_avg.result()))
                 train_log['iter'].append(global_step.numpy())
                 train_log['loss'].append(epoch_loss_avg.result())
-                # train_log['accuracy'].append(epoch_accuracy.result())
             if global_step.numpy() % args.eval_interval == 0:
                 test_AP, test_mAP = util.eval_dataset_map(model, test_dataset)
                 print("mAP: ", test_mAP)
-                # print("AP: ", AP)
-                # test_mAP = tf.constant(test_mAP)
                 with tf.contrib.summary.always_record_summaries():
                     tf.contrib.summary.scalar('Test mAP', test_mAP)
 
