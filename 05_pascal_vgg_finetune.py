@@ -154,24 +154,6 @@ class VGG(keras.Model):
         return tf.TensorShape(shape)
 
 
-# class VGGFull(keras.Model):
-#     def __init__(self, num_classes=10):
-#         super(VGGFull, self).__init__(name='VGGFull')
-#         self.num_classes = num_classes
-#         self.init_model = VGG(num_classes=self.num_classes)
-#         self.final_fc = layers.Dense(num_classes)
-
-#     def call(self, inputs, training=True):
-#         x = self.init_model(inputs, training=training)
-#         out = self.final_fc(x)
-        
-#         return out
-
-#     def compute_output_shape(self, input_shape):
-#         shape = tf.TensorShape(input_shape).as_list()
-#         shape = [shape[0], self.num_classes]
-#         return tf.TensorShape(shape)
-
 def augment_train_data(x, y, z):
     x = tf.image.random_crop(x, size=(224, 224, 3))
     x = tf.image.random_flip_left_right(x)
@@ -261,36 +243,18 @@ def main():
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
 
-    
+    # Build model first to load weights
     input_shape = tf.TensorShape([None, 224, 224, 3])
     model.build(input_shape)
-    # print(model.variables)
-    # for i in model.variables:
-        # print(i.name)
-        # print(i.numpy().shape)
 
     model.load_weights('vgg16_weights_tf_dim_ordering_tf_kernels.h5', by_name=True)
-    # f = open('vgg16_weights_tf_dim_ordering_tf_kernels.h5')
+    
+    # Print layer names in saved weights 
     # f = h5py.File('vgg16_weights_tf_dim_ordering_tf_kernels.h5', 'r')
-
-    # print("Keys: %s" % f.keys())
-    # a_group_key = list(f.keys())
 
     # # Get the data
     # for i in list(f.keys()):
         # print(i)
-
-    # for i in model.variables:
-        # print(i.name)
-    
-    # sys.exit()
-
-    # for i in model.variables:
-        # print(i.name)
-        # print(i.numpy().shape)
-    # print(model.variables)
-    # root = tf.train.Checkpoint(model=model)
-    # status = root.restore(tf.train.latest_checkpoint(ckpt_dir))
     
     decayed_lr = tf.train.exponential_decay(args.lr, global_step, 1000, 0.5, staircase=True)
     optimizer = tf.train.MomentumOptimizer(learning_rate=decayed_lr(), momentum=0.9)
