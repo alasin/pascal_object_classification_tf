@@ -70,7 +70,11 @@ Implemented in `util.py`.
 
 Done in `02_pascal.py`.
 
-#### Q 1.1 Show clear screenshots of the learning curves of testing MAP and training loss for 5 epochs (batch size=20, learning rate=0.001). Please evaluate your model to calculate the MAP on the testing dataset every 50 iterations. 
+#### Q 1.1 Show clear screenshots of the learning curves of testing MAP and training loss for 5 epochs (batch size=20, learning rate=0.001). Please evaluate your model to calculate the MAP on the testing dataset every 50 iterations.
+
+Here are the tensorboard plots for test mAP and training loss curve.
+![curve_simplecnn](images/tb_q1.png)
+
 
 
 
@@ -84,84 +88,51 @@ In this task we will be constructing a variant of the [alexnet](https://papers.n
 
 ### 2.1 Build CaffeNet
 
-Here is the exact model we want to build. We use the following operator notation for the architecture:
-
-1. Convolution: A convolution with kernel size `k`, stride `s`, output channels `n`, padding `p`, is represented as `conv(k, s, n, p)`.
-2. Max Pooling: A max pool operation with kernel size `k`, stride `s` as `max_pool(k, s)`.
-3. Fully connected: For `n` units, `fully_connected(n)`.
-
-```txt
-ARCHITECTURE:
-	-> image
-	-> conv(11, 4, 96, 'VALID')
-	-> relu()
-	-> max_pool(3, 2)
-	-> conv(5, 1, 256, 'SAME')
-	-> relu()
-	-> max_pool(3, 2)
-	-> conv(3, 1, 384, 'SAME')
-	-> relu()
-	-> conv(3, 1, 384, 'SAME')
-	-> relu()
-	-> conv(3, 1, 256, 'SAME')
-	-> relu()
-	-> max_pool(3, 2)
-	-> flatten()
-	-> fully_connected(4096)
-	-> relu()
-	-> dropout(0.5)
-	-> fully_connected(4096)
-	-> relu()
-	-> dropout(0.5)
-	-> fully_connected(20)
-```
+Implemented in `03_pascal_caffenet.py`.
 
 ### 2.2 Setup Solver Hyperparameters
 
-Please modify your code to use the following hyperparameter settings.
-
-1. Change the optimizer to SGD + Momentum, with momentum of 0.9.
-1. Use an exponentially decaying learning rate schedule, that starts at 0.001, and decays by 0.5 every 5K iterations.
-1. Use batch size 20.
+Implemented in `03_pascal_caffenet.py`.
 
 ### 2.3 Save the model
 
-Please add code for saving the model periodically (save at least **30** checkpoints during training for Task 2). Please save the models for **all the remaining scripts** (Task 3 and Task 4). And for Task 3 and Task 4, you only need to save the model in the end of training.You will need these models later. 
+Implemented in `03_pascal_caffenet.py`.
 
 
-#### Q 2.1 Show clear screenshots of testing MAP and training loss for 60 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 250 iterations. 
+#### Q 2.1 Show clear screenshots of testing MAP and training loss for 60 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 250 iterations.
 
+Here are the tensorboard plots for LR, test mAP and training loss curve.
+![curve_caffenet](images/tb_q2.png)
 
 ## Task 3: Even deeper! VGG-16 for PASCAL classification (15 points)
 
-Hopefully we all got much better accuracy with the deeper model! Since 2012, many other deeper architectures have been proposed, and [VGG-16](https://arxiv.org/abs/1409.1556) is one of the popular ones. In this task, we attempt to further improve the performance with the "very deep" VGG-16 architecture. Copy over your code from `02_pascal.py` to `04_pascal_vgg_scratch.py` and modify the code.
-
 ### 3.1: Build VGG-16
-Modify the network architecture from Task 2 to implement the VGG-16 architecture (refer to the original paper). 
+
+Implemented in `04_pascal_vgg_scratch.py`.
 
 ### 3.2: Setup TensorBoard
-Add code to use tensorboard for visualizing a) Training loss, b) Learning rate, c) Histograms of gradients, d) Training images
 
-Use the same hyperparameter settings from Task 2, and try to train the model. 
+Implemented in `04_pascal_vgg_scratch.py`.
 
 #### Q 3.1 Add screenshots of training and testing loss, testing MAP curves, learning rate, histograms of gradients and examples of training images from TensorBoard.
 
+Here are the tensorboard plots for LR, test mAP, training loss, histogram of gradients and sample images.
+
+![curve_vgg](images/tb_q3.png)
+![hog_vgg](images/tb_q3_2.png)
+![rgb_vgg](images/tb_q3_3.png)
+
+
 ## Task 4: Standing on the shoulder of the giants: finetuning from ImageNet (20 points)
-As we have already seen, deep networks can sometimes be hard to optimize, while other times lead to heavy overfitting on small training sets. Many approaches have been proposed to counter this, eg, [Krahenbuhl et al. (ICLR'16)](http://arxiv.org/pdf/1511.06856.pdf) and other works we have seen in un-/self-supervised learning. However, the most effective approach remains pre-training the network on large, well-labeled datasets such as ImageNet. While training on the full ImageNet data is beyond the scope of this assignment, people have already trained many popular/standard models and released them online. In this task, we will initialize the VGG model from the previous task with pre-trained ImageNet weights, and *finetune* the network for PASCAL classification. 
-
-Link for VGG-16 pretrained model in Keras:
-
-```bash
-https://github.com/fchollet/deep-learning-models/releases/download/v0.1/vgg16_weights_tf_dim_ordering_tf_kernels.h5
-```
-
-Copy over your code from `02_pascal.py` to `05_pascal_vgg_finetune.py` and modify the code.
 
 ### 4.1: Load pre-trained model
-Load the pre-trained weights upto fc7 layer, and initialize fc8 weights and biases from scratch. Then train the network as before. You may use funtions such as `tf.keras.utils.get_file`, `
-tf.keras.models.load_weights`. Since the pretrained model might use different names for the weights, you need to figure out how to load the weights correctly.
 
-#### Q4.1: Use similar hyperparameter setup as in the scratch case, however, let the learning rate start from 0.0001, and decay by 0.5 every 1K iterations. Show the learning curves (training and testing loss, testing MAP) for 10 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 60 iterations. 
+Implemented in `05_pascal_vgg_finetune.py`.
+
+#### Q4.1: Use similar hyperparameter setup as in the scratch case, however, let the learning rate start from 0.0001, and decay by 0.5 every 1K iterations. Show the learning curves (training and testing loss, testing MAP) for 10 epochs. Please evaluate your model to calculate the MAP on the testing dataset every 60 iterations.
+
+Here are the tensorboard plots for LR, test mAP and training loss curve.
+![curve_vgg_ft](images/tb_q4.png)
 
 ## Task 5: Analysis (20 points)
 
