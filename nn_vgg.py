@@ -183,7 +183,7 @@ def test(model, dataset):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Visualize CaffeNet')
+    parser = argparse.ArgumentParser(description='Visualize VGG')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--ckpt', type=int, default=5,

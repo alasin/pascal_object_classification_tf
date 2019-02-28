@@ -153,11 +153,12 @@ class VGG(keras.Model):
         shape = [shape[0], self.num_classes]
         return tf.TensorShape(shape)
 
-def mixup(images, labels, alpha, batch_size):
+def mixup(images, labels, l_weights, alpha, batch_size):
     weights = np.random.beta(alpha, alpha, batch_size)
     
     image_weight = weights.reshape(batch_size, 1, 1, 1)
     label_weight = weights.reshape(batch_size, 1)
+    l_w_weight = weights.reshape(batch_size, 1)
     ordering = np.random.permutation(batch_size)
 
     images_new = tf.gather(images, ordering)
@@ -166,11 +167,14 @@ def mixup(images, labels, alpha, batch_size):
     labels_new = tf.gather(labels, ordering)
     labels_old = labels
 
+    l_weights_new = tf.gather(l_weights, ordering)
+    l_weights_old = l_weights
 
     images = image_weight * images_old + (1 - image_weight) * images_new
     labels = label_weight * labels_old + (1 - label_weight) * labels_new
+    l_weights = l_w_weight * l_weights_old + (1 - l_w_weight) * l_weights_new
 
-    return images, labels
+    return images, labels, l_weights
 
 
 
@@ -199,7 +203,7 @@ def test(model, dataset):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TensorFlow Pascal Example')
+    parser = argparse.ArgumentParser(description='VGG Fine Tune Mixup')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--epochs', type=int, default=10,
@@ -258,7 +262,7 @@ def main():
     train_log = {'iter': [], 'loss': [], 'accuracy': []}
     test_log = {'iter': [], 'loss': [], 'accuracy': []}
 
-    ckpt_dir = 'pascal_vgg_mixup_new'
+    ckpt_dir = 'pascal_vgg_mixup_weights'
     ckpt_prefix = os.path.join(ckpt_dir, 'ckpt')
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
@@ -288,8 +292,9 @@ def main():
         for batch, (images, labels, weights) in enumerate(train_dataset):
             batch_size = int(images.shape[0])
             labels = tf.cast(labels, tf.float32)
+            weights = tf.cast(weights, tf.float32)
 
-            images, labels = mixup(images, labels, alpha, batch_size)
+            images, labels, weights = mixup(images, labels, weights, alpha, batch_size)
             loss_value, grads = util.cal_grad(model,
                                               loss_func=tf.losses.sigmoid_cross_entropy,
                                               inputs=images,

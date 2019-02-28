@@ -159,7 +159,7 @@ def test(model, dataset):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TensorFlow Pascal Example')
+    parser = argparse.ArgumentParser(description='VGG Scratch')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--epochs', type=int, default=60,

@@ -165,21 +165,16 @@ def center_crop_test_data(x, y, z):
 
 def test(model, dataset):
     test_loss = tfe.metrics.Mean()
-    test_accuracy = tfe.metrics.Accuracy()
     for batch, (images, labels, weights) in enumerate(dataset):
         logits = model(images, training=False)
         loss_value = tf.losses.sigmoid_cross_entropy(labels, logits, weights)
-        prediction = tf.round(tf.nn.sigmoid(logits))
-        prediction = tf.cast(prediction, tf.int32)
-        # prediction = tf.argmax(logits, axis=1, output_type=tf.int32)
-        test_accuracy(prediction, labels)
         test_loss(loss_value)
-    return test_loss.result(), test_accuracy.result()
+    return test_loss.result()
 
 
 
 def main():
-    parser = argparse.ArgumentParser(description='TensorFlow Pascal Example')
+    parser = argparse.ArgumentParser(description='VGG Fine Tune')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--epochs', type=int, default=10,
@@ -294,10 +289,13 @@ def main():
                 
             if global_step.numpy() % args.eval_interval == 0:
                 test_AP, test_mAP = util.eval_dataset_map(model, test_dataset)
+                test_loss = test(model, test_dataset)
                 print("mAP: ", test_mAP)
+                print("Test Loss: ", test_loss)
                 # print("Loss: %.4f, Acc: %.4f, mAP: %.4f", test_lotest_mAP)
                 with tf.contrib.summary.always_record_summaries():
                     tf.contrib.summary.scalar('Test mAP', test_mAP)
+                    tf.contrib.summary.scalar('Test Loss', test_loss)
 
         if ep % 2 == 0:
             root.save(ckpt_prefix)

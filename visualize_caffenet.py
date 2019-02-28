@@ -11,9 +11,6 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.contrib import eager as tfe
-from sklearn.manifold import TSNE
-import matplotlib
-from sklearn.decomposition import PCA
 
 import util
 import h5py
@@ -78,10 +75,10 @@ class CaffeNet(keras.Model):
         flat_x = self.flat(x)
         out = self.dense1(flat_x)
         out = self.dropout1(out, training=training)
-        fc7_feat = self.dense2(out)
-        out = self.dropout2(fc7_feat, training=training)
+        out = self.dense2(out)
+        out = self.dropout2(out, training=training)
         out = self.dense3(out)
-        return fc7_feat
+        return out
 
     def compute_output_shape(self, input_shape):
         shape = tf.TensorShape(input_shape).as_list()
@@ -89,52 +86,19 @@ class CaffeNet(keras.Model):
         return tf.TensorShape(shape)
 
 
-def center_crop_test_data(x, y, z):
-    x = tf.image.central_crop(x, central_fraction=0.875)
-    return x, y, z
 
-
-def test(model, dataset):
-    all_features = []
-    all_labels = []
-    for batch, (images, labels, weights) in enumerate(dataset):
-        features = model(images, training=False)
-        all_features.append(features.numpy())
-        all_labels.append(labels.numpy())
-    
-    all_features = np.concatenate(all_features, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    
-    return all_features, all_labels
-
-def compute_average_labels(labels):
-    num_images, num_dims = labels.shape
-    output_labels = np.zeros(num_images)
-
-    labels = labels.astype(np.uint8)
-    
-    for i in range(num_images):
-        label_count = 0
-        label_idx_count = 0.0
-        for j in range(num_dims):
-            if labels[i, j] == 1:
-                label_count += 1
-                label_idx_count += j
-        
-        if label_count > 0:
-            output_labels[i] = label_idx_count/label_count
-    
-    return output_labels
-
+def vis_kernel(kernel):
+    max_val = np.max(kernel)
+    min_val = np.min(kernel)
+    kernel = ((kernel - min_val)/(max_val - min_val))*256
+    kernel = kernel.astype(np.uint8)
+    plt.imshow(kernel)
 
 def main():
     parser = argparse.ArgumentParser(description='Visualize CaffeNet')
-    parser.add_argument('--batch-size', type=int, default=20,
+    parser.add_argument('--ckpt', type=int, default=10,
                         help='input batch size for training')
-    parser.add_argument('--ckpt', type=int, default=30,
-                        help='input batch size for training')
-    parser.add_argument('--data-dir', type=str, default='./data/VOCdevkit/VOC2007',
-                        help='Path to PASCAL data storage')
+
     args = parser.parse_args()
     
     model = CaffeNet(num_classes=len(CLASS_NAMES))
@@ -142,58 +106,19 @@ def main():
     model.build(input_shape)
 
     model.load_weights('pascal_caffenet/ckpt-' + str(args.ckpt))
+    conv1_weights = model.get_layer(index=0).get_weights()[0]
 
-    test_images, test_labels, test_weights = util.load_pascal(args.data_dir,
-                                                              class_names=CLASS_NAMES,
-                                                              split='test')
+    idxs_to_visualize = list(range(16))
 
-    ordering = np.random.permutation(1000)
-    test_images = test_images[ordering]
-    test_labels = test_labels[ordering]
-    test_weights = test_weights[ordering]
+    # conv1_weights = (conv1_weights / absMax) * 255
 
+    
+    for i, idx in enumerate(idxs_to_visualize):
+        kernel = conv1_weights[:, :, :, idx]
+        plt.subplot(4, 4, i + 1)
+        plt.axis('off')
+        vis_kernel(kernel)
 
-    test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels, test_weights))
-    test_dataset = test_dataset.map(center_crop_test_data)
-    test_dataset = test_dataset.batch(args.batch_size)
-
-    sample_feats, sample_labels = test(model, test_dataset)
-    sample_label_colors = compute_average_labels(sample_labels)
-
-    feats_embedded = TSNE(n_components=2).fit_transform(sample_feats)
-
-    cmap = matplotlib.cm.get_cmap('tab20')
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=19)
-    plt.scatter(feats_embedded[:, 0], feats_embedded[:, 1], c=sample_label_colors, cmap=cmap)
-   
-    left, right = plt.xlim()
-    plt.xlim(left, right + 5)
-    recs = []
-    for i in range(len(CLASS_NAMES)):
-        recs.append(matplotlib.patches.Rectangle((0, 0), 1, 1, fc=cmap(norm(i))))
-
-    plt.legend(recs, CLASS_NAMES, loc=4)
-    plt.title('TSNE')
-    plt.show()
-
-    ######### PCA TSNE #######################
-    pca = PCA(n_components=50)
-    principal_components = pca.fit_transform(sample_feats)
-
-    feats_embedded = TSNE(n_components=2).fit_transform(principal_components)
-
-    cmap = matplotlib.cm.get_cmap('tab20')
-    norm = matplotlib.colors.Normalize(vmin=0, vmax=19)
-    plt.scatter(feats_embedded[:, 0], feats_embedded[:, 1], c=sample_label_colors, cmap=cmap)
-   
-    left, right = plt.xlim()
-    plt.xlim(left, right + 5)
-    recs = []
-    for i in range(len(CLASS_NAMES)):
-        recs.append(matplotlib.patches.Rectangle((0, 0), 1, 1, fc=cmap(norm(i))))
-
-    plt.legend(recs, CLASS_NAMES, loc=4)
-    plt.title('TSNE with PCA (50-d)')
     plt.show()
 
 

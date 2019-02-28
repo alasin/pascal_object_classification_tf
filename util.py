@@ -39,53 +39,57 @@ def load_pascal(data_dir, class_names, split='trainval'):
             are confidently labeled and 0s for classes that
             are ambiguous.
     """
-    ## TODO Implement this function
-    num_classes = len(class_names)
-    # class_dict = {}
-    # for i, class_name in enumerate(class_names):
-    #     class_dict[class_name] = i
-    
-    labels = {}
-    weights = {}
-    for i, class_name in enumerate(class_names):
-        file_name = data_dir + '/' + 'ImageSets/Main/' + class_name + '_' + split + '.txt'
-        f = open(file_name, 'r')
-        for line in f:
-            line = line[:-1]
-            tokens = line.split(' ')
-            idx = tokens[0]
-            presence = tokens[-1]
-            if idx not in labels:
-                labels[idx] = np.zeros(num_classes, dtype=np.int32)
-                weights[idx] = np.ones(num_classes, dtype=np.int32)
-            
-            if presence == '0' or presence == '1':
-                labels[idx][i] = 1
 
-            if presence == '0':
-                weights[idx][i] = 1
+    npz_filename = data_dir + '/pascal_' + split + '.npz'
+    if os.path.isfile(npz_filename):
+        l = np.load(npz_filename)
+        images_arr = l['images']
+        labels_arr = l['labels']
+        weights_arr = l['weights']
+    else:
+        num_classes = len(class_names)
+        
+        labels = {}
+        weights = {}
+        for i, class_name in enumerate(class_names):
+            file_name = data_dir + '/' + 'ImageSets/Main/' + class_name + '_' + split + '.txt'
+            f = open(file_name, 'r')
+            for line in f:
+                line = line[:-1]
+                tokens = line.split(' ')
+                idx = tokens[0]
+                presence = tokens[-1]
+                if idx not in labels:
+                    labels[idx] = np.zeros(num_classes, dtype=np.int32)
+                    weights[idx] = np.ones(num_classes, dtype=np.int32)
+                
+                if presence == '0' or presence == '1':
+                    labels[idx][i] = 1
 
-        f.close()
+                if presence == '0':
+                    weights[idx][i] = 1
 
+            f.close()
 
-    images_arr = []
-    labels_arr = []
-    weights_arr = []
-    mean_rgb = np.array([123.68, 116.78, 103.94])
-    for key, val in labels.items():
-        im_name = data_dir + '/JPEGImages/' + key + '.jpg'
-        im = sio.imread(im_name)
-        im = resize(im, (256, 256, 3), preserve_range=True)
-        im = np.subtract(im, mean_rgb)
+        images_arr = []
+        labels_arr = []
+        weights_arr = []
+        mean_rgb = np.array([123.68, 116.78, 103.94])
+        for key, val in labels.items():
+            im_name = data_dir + '/JPEGImages/' + key + '.jpg'
+            im = sio.imread(im_name)
+            im = resize(im, (256, 256, 3), preserve_range=True)
+            im = np.subtract(im, mean_rgb)
 
-        images_arr.append(im)
-        labels_arr.append(val)
-        weights_arr.append(weights[key])
+            images_arr.append(im)
+            labels_arr.append(val)
+            weights_arr.append(weights[key])
 
-    images_arr = np.array(images_arr, dtype=np.float32)
-    labels_arr = np.array(labels_arr)
-    weights_arr = np.array(weights_arr)
+        images_arr = np.array(images_arr, dtype=np.float32)
+        labels_arr = np.array(labels_arr)
+        weights_arr = np.array(weights_arr)
 
+        np.savez(npz_filename, images=images_arr, labels=labels_arr, weights=weights_arr)
     
     return images_arr, labels_arr, weights_arr
 

@@ -115,9 +115,32 @@ def test(model, dataset):
 #         name = class_names[class_idx]
 #         print("Example {} prediction: {} ({:4.1f}%)".format(i, name, 100 * p))
 
+def mixup(images, labels, l_weights, alpha, batch_size):
+    weights = np.random.beta(alpha, alpha, batch_size)
+    
+    image_weight = weights.reshape(batch_size, 1, 1, 1)
+    label_weight = weights.reshape(batch_size, 1)
+    l_w_weight = weights.reshape(batch_size, 1)
+    ordering = np.random.permutation(batch_size)
+
+    images_new = tf.gather(images, ordering)
+    images_old = images
+
+    labels_new = tf.gather(labels, ordering)
+    labels_old = labels
+
+    l_weights_new = tf.gather(l_weights, ordering)
+    l_weights_old = l_weights
+
+    images = image_weight * images_old + (1 - image_weight) * images_new
+    labels = label_weight * labels_old + (1 - label_weight) * labels_new
+    # l_weights = l_w_weight * l_weights_old + (1 - l_w_weight) * l_weights_new
+
+    return images, labels, l_weights
+
 
 def main():
-    parser = argparse.ArgumentParser(description='CaffeNet scratch')
+    parser = argparse.ArgumentParser(description='CaffeNet mixup')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--epochs', type=int, default=60,
@@ -179,23 +202,28 @@ def main():
     train_log = {'iter': [], 'loss': [], 'accuracy': []}
     test_log = {'iter': [], 'loss': [], 'accuracy': []}
 
-    ckpt_dir = 'pascal_caffenet'
+    ckpt_dir = 'pascal_caffenet_mixup'
     ckpt_prefix = os.path.join(ckpt_dir, 'ckpt')
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_prefix)
 
     
+    alpha = 0.2
     for ep in range(args.epochs):
         epoch_loss_avg = tfe.metrics.Mean()
         for batch, (images, labels, weights) in enumerate(train_dataset):
+            batch_size = int(images.shape[0])
+            labels = tf.cast(labels, tf.float32)
+            weights = tf.cast(weights, tf.float32)
+
+            images, labels, weights = mixup(images, labels, weights, alpha, batch_size)
             loss_value, grads = util.cal_grad(model,
                                               loss_func=tf.losses.sigmoid_cross_entropy,
                                               inputs=images,
                                               targets=labels,
                                               weights=weights)
-            optimizer.apply_gradients(zip(grads,
-                                          model.trainable_variables),
-                                      global_step)
+            
+            optimizer.apply_gradients(zip(grads, model.trainable_variables), global_step)
             epoch_loss_avg(loss_value)
             
             if global_step.numpy() % args.log_interval == 0:
@@ -208,7 +236,7 @@ def main():
                 
                 with tf.contrib.summary.always_record_summaries():
                     tf.contrib.summary.scalar('Training Loss', loss_value)
-                    tf.contrib.summary.image('RGB', images)
+                    # tf.contrib.summary.image('RGB', images)
                     tf.contrib.summary.scalar('LR', decayed_lr())
                 
             if global_step.numpy() % args.eval_interval == 0:
