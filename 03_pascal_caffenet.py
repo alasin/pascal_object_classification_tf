@@ -57,8 +57,10 @@ class CaffeNet(keras.Model):
         self.flat = layers.Flatten()
 
         self.dense1 = layers.Dense(4096, activation='relu')
-        self.dropout = layers.Dropout(rate=0.5)
-        self.dense2 = layers.Dense(num_classes)
+        self.dropout1 = layers.Dropout(rate=0.5)
+        self.dense2 = layers.Dense(4096, activation='relu')
+        self.dropout2 = layers.Dropout(rate=0.5)
+        self.dense3 = layers.Dense(num_classes)
 
     def call(self, inputs, training=True):
         x = self.conv1(inputs)
@@ -71,8 +73,10 @@ class CaffeNet(keras.Model):
         x = self.pool3(x)
         flat_x = self.flat(x)
         out = self.dense1(flat_x)
-        out = self.dropout(out, training=training)
+        out = self.dropout1(out, training=training)
         out = self.dense2(out)
+        out = self.dropout2(out, training=training)
+        out = self.dense3(out)
         return out
 
     def compute_output_shape(self, input_shape):
