@@ -160,8 +160,6 @@ Final mAP - 0.6647
 
 ## Task 5: Analysis (20 points)
 
-By now we should have a good idea of training networks from scratch or from pre-trained model, and the relative performance in either scenarios. Needless to say, the performance of these models is way stronger than previous non-deep architectures we used until 2012. However, final performance is not the only metric we care about. It is important to get some intuition of what these models are really learning. Lets try some standard techniques.
-
 #### Q5.1: Conv-1 filters
 Extract and compare the conv1 filters from CaffeNet in Task 2, at different stages of the training. Show at least 3 filters.
 
@@ -169,15 +167,19 @@ Extract and compare the conv1 filters from CaffeNet in Task 2, at different stag
 Here are the first 16 filters of conv1 visualized after 10, 20, 40 and 60 epochs. The code is implemented in `visualize_caffenet.py`.
 
 **10 epochs**
+
 ![10epochs](images/vis_epoch10.png)
 
 **20 epochs**
+
 ![20epochs](images/vis_epoch20.png)
 
 **40 epochs**
+
 ![20epochs](images/vis_epoch40.png)
 
 **60 epochs**
+
 ![20epochs](images/vis_epoch60.png)
 
 #### Q5.2: Nearest neighbors
