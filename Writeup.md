@@ -2,6 +2,16 @@
 
 - Anuj Pahuja (apahuja)
 
+Scripts corresponding to different questions are mentioned along with the answers to the questions. Execution commands for different scripts - 
+1. `python 02_pascal.py`  
+2. `python 03_pascal_caffenet.py`  
+3. `python 04_pascal_vgg_scratch.py`  
+4. `python 04_pascal_vgg_finetune.py`  
+5. `python visualize_caffenet.py --ckpt <ckpt>` (Reported on 5, 10, 20, and 30)
+6. `python nn_caffenet.py` and `python nn_vgg.py`
+7. `python tsne_caffenet.py`
+8. `python eval_caffenet.py` and `python eval_vgg_ft.py`
+9. `python 06_pascal_caffenet_mixup.py` and `06_pascal_vgg_finetune_mixup.py`
 
 ## Task 0: Fashion MNIST classification in TensorFlow (5 points)
 
