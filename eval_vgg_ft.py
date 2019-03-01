@@ -11,9 +11,6 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.contrib import eager as tfe
-from sklearn.manifold import TSNE
-import matplotlib
-from scipy.spatial.distance import cdist
 
 import util
 import h5py
@@ -141,15 +138,15 @@ class VGG(keras.Model):
         x = self.block5_conv1(x)
         x = self.block5_conv2(x)
         x = self.block5_conv3(x)
-        pool5_feat = self.block5_pool(x)
+        x = self.block5_pool(x)
 
-        flat_x = self.flat(pool5_feat)
+        flat_x = self.flat(x)
         out = self.fc1(flat_x)
         out = self.dropout1(out, training=training)
-        fc7_feat = self.fc2(out)
-        out = self.dropout2(fc7_feat, training=training)
+        out = self.fc2(out)
+        out = self.dropout2(out, training=training)
         out = self.final_fc(out)
-        return pool5_feat, fc7_feat
+        return out
 
     def compute_output_shape(self, input_shape):
         shape = tf.TensorShape(input_shape).as_list()
@@ -157,43 +154,32 @@ class VGG(keras.Model):
         return tf.TensorShape(shape)
 
 
+def augment_train_data(x, y, z):
+    x = tf.image.random_crop(x, size=(224, 224, 3))
+    x = tf.image.random_flip_left_right(x)
+    return x, y, z
+
 def center_crop_test_data(x, y, z):
     x = tf.image.central_crop(x, central_fraction=0.875)
     return x, y, z
 
-
 def test(model, dataset):
-    all_pool5 = []
-    all_fc7 = []
-    all_images = []
-    all_labels = []
+    test_loss = tfe.metrics.Mean()
     for batch, (images, labels, weights) in enumerate(dataset):
-        pool5_feat, fc7_feat = model(images, training=False)
-        all_pool5.append(pool5_feat.numpy())
-        all_fc7.append(fc7_feat.numpy())
-        all_labels.append(labels.numpy())
-        all_images.append(images.numpy())
-    
-    all_pool5 = np.concatenate(all_pool5, axis=0)
-    all_fc7 = np.concatenate(all_fc7, axis=0)
-    all_labels = np.concatenate(all_labels, axis=0)
-    all_images = np.concatenate(all_images, axis=0)
-    
-    return all_pool5, all_fc7, all_images, all_labels
+        logits = model(images, training=False)
+        loss_value = tf.losses.sigmoid_cross_entropy(labels, logits, weights)
+        test_loss(loss_value)
+    return test_loss.result()
+
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Visualize VGG')
+    parser = argparse.ArgumentParser(description='Evaluate VGG FT')
     parser.add_argument('--batch-size', type=int, default=20,
                         help='input batch size for training')
     parser.add_argument('--data-dir', type=str, default='./data/VOCdevkit/VOC2007',
                         help='Path to PASCAL data storage')
     args = parser.parse_args()
-    
-    model = VGG(num_classes=len(CLASS_NAMES))
-
-    checkpoint = tf.train.Checkpoint(model=model)
-    status = checkpoint.restore(tf.train.latest_checkpoint('pascal_vgg_ft'))
 
     test_images, test_labels, test_weights = util.load_pascal(args.data_dir,
                                                               class_names=CLASS_NAMES,
@@ -204,73 +190,23 @@ def main():
     test_dataset = test_dataset.map(center_crop_test_data)
     test_dataset = test_dataset.batch(args.batch_size)
 
-    pool5_feats, fc7_feats, all_images, all_labels = test(model, test_dataset)
-    
-    pool5_feats = np.reshape(pool5_feats, (pool5_feats.shape[0], -1))
-    fc7_feats = np.reshape(fc7_feats, (fc7_feats.shape[0], -1))
+    model = VGG(num_classes=len(CLASS_NAMES))
 
-    picked_classes = np.zeros((len(CLASS_NAMES)), dtype=np.uint8)
-    
-    i = 0
-    num_images = 0
-    images = []
-    labels = []
-    pool5_nns = []
-    fc7_nns = []
+    checkpoint = tf.train.Checkpoint(model=model)
+    status = checkpoint.restore(tf.train.latest_checkpoint('pascal_vgg_ft'))
 
-    mean_rgb = np.array([123.68, 116.78, 103.94])
-    all_images = np.add(all_images, mean_rgb)
-    all_images = all_images.astype(np.uint8)
-    
-    while num_images < 10:
-        label = np.argmax(all_labels[i], -1)
-        if picked_classes[label]:
-            i += 1
-            continue
-        
-        images.append(all_images[i])
-        labels.append(np.argmax(all_labels[i], -1))
+    AP, mAP = util.eval_dataset_map(model, test_dataset)
+    rand_AP = util.compute_ap(
+        test_labels, np.random.random(test_labels.shape),
+        test_weights, average=None)
+    print('Random AP: {} mAP'.format(np.mean(rand_AP)))
+    gt_AP = util.compute_ap(test_labels, test_labels, test_weights, average=None)
+    print('GT AP: {} mAP'.format(np.mean(gt_AP)))
+    print('Obtained {} mAP'.format(mAP))
+    print('Per class:')
+    for cid, cname in enumerate(CLASS_NAMES):
+        print('{}: {}'.format(cname, util.get_el(AP, cid)))
 
-        pool5 = np.expand_dims(pool5_feats[i], 0)
-        fc7 = np.expand_dims(fc7_feats[i], 0)
-
-        pool_dists = np.squeeze(cdist(pool5, pool5_feats))
-        fc_dists = np.squeeze(cdist(fc7, fc7_feats))
-
-        pool_idxs = list(np.argsort(pool_dists)[0:5])
-        fc_idxs = list(np.argsort(fc_dists)[0:5])
-
-        pool5_nns.append(pool_idxs)
-        fc7_nns.append(fc_idxs)
-
-        i += 1
-        num_images += 1
-
-    f, axarr = plt.subplots(num_images, 6)
-    axarr[0, 0].set_title('Chosen image')
-    for i in range(num_images):
-        axarr[i, 0].imshow(images[i])
-        axarr[i, 0].axis('off')
-
-        for j in range(5):
-            axarr[i, j+1].imshow(all_images[pool5_nns[i][j]])
-            axarr[i, j+1].axis('off')
-        
-    f.suptitle('Pool5 NNs')
-    plt.show()
-
-    f, axarr = plt.subplots(num_images, 6)
-    axarr[0, 0].set_title('Chosen image')
-    for i in range(num_images):
-        axarr[i, 0].imshow(images[i])
-        axarr[i, 0].axis('off')
-
-        for j in range(5):
-            axarr[i, j+1].imshow(all_images[fc7_nns[i][j]])
-            axarr[i, j+1].axis('off')
-        
-    f.suptitle('FC7 NNs')
-    plt.show()
 
 if __name__ == '__main__':
     tf.enable_eager_execution()

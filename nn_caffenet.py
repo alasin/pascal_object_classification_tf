@@ -125,10 +125,9 @@ def main():
     args = parser.parse_args()
     
     model = CaffeNet(num_classes=len(CLASS_NAMES))
-    input_shape = tf.TensorShape([None, 224, 224, 3])
-    model.build(input_shape)
 
-    model.load_weights('pascal_caffenet/ckpt-' + str(args.ckpt))
+    checkpoint = tf.train.Checkpoint(model=model)
+    status = checkpoint.restore(tf.train.latest_checkpoint('pascal_caffenet'))
 
     test_images, test_labels, test_weights = util.load_pascal(args.data_dir,
                                                               class_names=CLASS_NAMES,
