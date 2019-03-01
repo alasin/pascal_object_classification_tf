@@ -300,6 +300,7 @@ def main():
         if ep % 2 == 0:
             root.save(ckpt_prefix)
 
+    root.save(ckpt_prefix)
     model.summary()
     
 

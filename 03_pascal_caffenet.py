@@ -220,6 +220,7 @@ def main():
         if ep % 2 == 0:
             root.save(ckpt_prefix)
     
+    root.save(ckpt_prefix)
     model.summary()
 
     AP, mAP = util.eval_dataset_map(model, test_dataset)
